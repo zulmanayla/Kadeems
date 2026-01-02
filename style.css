@@ -1,32 +1,13 @@
-body {
-  font-family: Arial, sans-serif;
-  background: #f4f6f8;
+.bg-image-vertical {
+position: relative;
+overflow: hidden;
+background-repeat: no-repeat;
+background-position: right center;
+background-size: auto 100%;
 }
 
-.container {
-  width: 80%;
-  margin: 50px auto;
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
+@media (min-width: 1025px) {
+.h-custom-2 {
+height: 100%;
 }
-
-input, button {
-  padding: 8px;
-  margin-top: 10px;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 15px;
-}
-
-th, td {
-  border: 1px solid #ddd;
-  padding: 8px;
-}
-
-th {
-  background: #f0f0f0;
 }
