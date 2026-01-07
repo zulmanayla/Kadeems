@@ -1,80 +1,114 @@
-document.addEventListener("DOMContentLoaded", () => {
-    const form = document.getElementById("loginForm");
-    const spinner = document.getElementById("spinner");
-    const btnText = document.getElementById("btnText");
-    const loginBtn = document.getElementById("loginBtn");
+// ----------------------------
+// LOGIN
+// ----------------------------
+function login() {
+  const email = document.getElementById("email").value.trim().toLowerCase();
 
-    if (!form) {
-        alert("Form login tidak ditemukan");
-        return;
+  if (!email) {
+    document.getElementById("error").innerText = "Email is required";
+    return;
+  }
+
+  localStorage.setItem("user_email", email);
+  window.location.href = "dashboard.html";
+}
+
+// ----------------------------
+// LOGOUT
+// ----------------------------
+function logout() {
+  localStorage.removeItem("user_email");
+  window.location.href = "index.html";
+}
+
+// ----------------------------
+// DASHBOARD LOAD
+// ----------------------------
+async function loadDashboard() {
+  const email = localStorage.getItem("user_email");
+
+  if (!email) {
+    window.location.href = "index.html";
+    return;
+  }
+
+  document.getElementById("user-info").innerHTML =
+    `Login sebagai: <b>${email}</b>`;
+
+  const res = await fetch("pj.csv");
+  const text = await res.text();
+
+  const rows = text.split("\n").map(r => r.split(","));
+  const headers = rows.shift().map(h => h.trim());
+
+  const data = rows
+    .map(r => {
+      let obj = {};
+      headers.forEach((h, i) => obj[h] = r[i]?.trim());
+      return obj;
+    })
+    .filter(r => r.email?.toLowerCase() === email);
+
+  if (data.length === 0) {
+    document.getElementById("table-container").innerHTML =
+      "<p>No data for this user.</p>";
+    return;
+  }
+
+  renderTable(headers, data);
+  renderChart(data);
+}
+
+// ----------------------------
+// TABLE
+// ----------------------------
+function renderTable(headers, data) {
+  let html = "<table><thead><tr>";
+
+  headers.forEach(h => {
+    if (!["_nilai", "Kategori"].includes(h)) {
+      html += `<th>${h}</th>`;
     }
+  });
 
-    form.addEventListener("submit", async (e) => {
-        e.preventDefault();
+  html += "</tr></thead><tbody>";
 
-        const email = document.getElementById("email").value.trim();
-        const password = document.getElementById("password").value.trim();
-
-        if (!email || !password) {
-        alert("Email dan password wajib diisi");
-        return;
-        }
-
-        // === UI loading ===
-        spinner.classList.remove("d-none");
-        btnText.textContent = "Memverifikasi...";
-        loginBtn.disabled = true;
-
-        try {
-        // ambil CSV (relative ke halaman HTML di root proyek)
-        const response = await fetch("pj.csv");
-        if (!response.ok) throw new Error("CSV tidak ditemukan");
-
-        const csvText = await response.text();
-        const rows = csvText
-            .trim()
-            .split(/\r?\n/)
-            .slice(1); // skip header
-
-        let isValid = false;
-
-        for (const row of rows) {
-            if (!row) continue;
-
-            const [csvEmail, csvPassword] = row
-            .split(",")
-            .map(v => v.trim());
-
-            if (csvEmail === email && csvPassword === password) {
-            isValid = true;
-            break;
-            }
-        }
-
-            if (isValid) {
-            sessionStorage.setItem("loggedIn", "true");
-            sessionStorage.setItem("userEmail", email);
-
-            // GANTI PESAN LOGIN
-            const msg = document.getElementById("loginMessage");
-            msg.textContent = "Login berhasil. Mengalihkan ke dashboard...";
-            msg.style.color = "#198754"; // hijau
-            msg.style.fontWeight = "500";
-
-            // DELAY AGAR KELIHATAN
-            setTimeout(() => {
-                window.location.href = "dashboard.html";
-            }, 1200);
-            }
-
-
-        } catch (err) {
-        console.error(err);
-        alert("⚠️ Terjadi kesalahan saat membaca data login");
-        } finally {
-        spinner.classList.add("d-none");
-        btnText.textContent = "LOGIN";
-        loginBtn.disabled = false;
-        }
+  data.forEach(row => {
+    html += "<tr>";
+    headers.forEach(h => {
+      if (!["_nilai", "Kategori"].includes(h)) {
+        html += `<td>${row[h] || ""}</td>`;
+      }
     });
-});
+    html += "</tr>";
+  });
+
+  html += "</tbody></table>";
+  document.getElementById("table-container").innerHTML = html;
+}
+
+// ----------------------------
+// CHART
+// ----------------------------
+function renderChart(data) {
+  if (!data[0]._nilai || !data[0].Desa) return;
+
+  const labels = data.map(d => d.Desa);
+  const values = data.map(d => Number(d._nilai));
+
+  new Chart(document.getElementById("chart"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: "Nilai",
+        data: values
+      }]
+    }
+  });
+}
+
+// Auto-load dashboard
+if (window.location.pathname.includes("dashboard")) {
+  loadDashboard();
+}
